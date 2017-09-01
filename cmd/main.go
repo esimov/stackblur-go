@@ -20,25 +20,24 @@ var (
 )
 
 func main() {
-		flag.Parse()
+	flag.Parse()
 
-		img, err := os.Open(*source)
-		defer img.Close()
+	img, err := os.Open(*source)
+	defer img.Close()
 
-		src, _, err := image.Decode(img)
-		if err != nil {
-			panic(err)
-		}
-		start := time.Now()
-		dst := stackblur.Process(src, uint32(src.Bounds().Dx()), uint32(src.Bounds().Dy()), uint32(*radius))
-		end := time.Since(start)
-		fmt.Printf("Generated in: %.2fs\n", end.Seconds())
+	src, _, err := image.Decode(img)
+	if err != nil {
+		panic(err)
+	}
+	start := time.Now()
+	dst := stackblur.Process(src, uint32(src.Bounds().Dx()), uint32(src.Bounds().Dy()), uint32(*radius))
+	end := time.Since(start)
+	fmt.Printf("Processed in: %.2fs\n", end.Seconds())
 
-		fq, err := os.Create(*destination)
-		defer fq.Close()
+	fq, err := os.Create(*destination)
+	defer fq.Close()
 
-		if err = png.Encode(fq, dst); err != nil {
-			log.Fatal(err)
-		}
-
+	if err = png.Encode(fq, dst); err != nil {
+		log.Fatal(err)
+	}
 }
