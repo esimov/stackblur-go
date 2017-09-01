@@ -30,7 +30,7 @@ func main() {
 		}
 		start := time.Now()
 		dst := stackblur.Process(src, uint32(src.Bounds().Dx()), uint32(src.Bounds().Dy()), 20)
-		end := time.Since(start)		
+		end := time.Since(start)
 		fmt.Printf("Generated in: %.2fs\n", end.Seconds())
 
 		fq, err := os.Create(*destination)
