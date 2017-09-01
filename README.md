@@ -38,7 +38,7 @@ Usage of stackblur:
   -radius int
     	Radius (default 20)
 ```
-Running the below command will generate the following image:
+Running command below will generate the blurred version of the source image.
 
 ```bash
 $ stackblur -in image/sample.png -out image/output.png -radius 10
@@ -47,3 +47,8 @@ $ stackblur -in image/sample.png -out image/output.png -radius 10
 | Original image | Stackblured image |
 |:--:|:--:|
 | <img src="https://github.com/esimov/stackblur-go/blob/master/image/sample.png" height="300"> | <img src="https://github.com/esimov/stackblur-go/blob/master/image/output.png" height="300"> |
+
+
+## License
+
+This project is under the MIT License. See the [LICENSE](https://github.com/esimov/stackblur-go/blob/master/LICENSE) file for the full license text.
