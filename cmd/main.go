@@ -15,7 +15,8 @@ import (
 
 var (
 	source		= flag.String("in", "", "Source")
-	destination 	= flag.String("out", "", "Destination")
+	destination	= flag.String("out", "", "Destination")
+	radius 		= flag.Int("radius", 20, "Radius")
 )
 
 func main() {
@@ -29,7 +30,7 @@ func main() {
 			panic(err)
 		}
 		start := time.Now()
-		dst := stackblur.Process(src, uint32(src.Bounds().Dx()), uint32(src.Bounds().Dy()), 20)
+		dst := stackblur.Process(src, uint32(src.Bounds().Dx()), uint32(src.Bounds().Dy()), uint32(*radius))
 		end := time.Since(start)
 		fmt.Printf("Generated in: %.2fs\n", end.Seconds())
 
