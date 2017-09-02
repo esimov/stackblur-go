@@ -57,8 +57,6 @@ func (bs *blurstack) NewBlurStack() *blurstack {
 
 func Process(src image.Image, width, height, radius uint32) image.Image {
 	var stackEnd, stackIn, stackOut *blurstack
-
-	img := toNRGBA(src)
 	var (
 		div, widthMinus1, heightMinus1, radiusPlus1, sumFactor uint32
 		x, y, i, p, yp, yi, yw,
@@ -67,6 +65,8 @@ func Process(src image.Image, width, height, radius uint32) image.Image {
 		r_in_sum, g_in_sum, b_in_sum, a_in_sum,
 		pr, pg, pb, pa uint32
 	)
+
+	img := toNRGBA(src)
 
 	div 		= radius + radius + 1
 	widthMinus1 	= width - 1
@@ -93,10 +93,10 @@ func Process(src image.Image, width, height, radius uint32) image.Image {
 	for y = 0; y < height; y++ {
 		r_in_sum, g_in_sum, b_in_sum, a_in_sum, r_sum, g_sum, b_sum, a_sum = 0, 0, 0, 0, 0, 0, 0, 0
 
-		pr := uint32(img.Pix[yi])
-		pg := uint32(img.Pix[yi+1])
-		pb := uint32(img.Pix[yi+2])
-		pa := uint32(img.Pix[yi+3])
+		pr = uint32(img.Pix[yi])
+		pg = uint32(img.Pix[yi+1])
+		pb = uint32(img.Pix[yi+2])
+		pa = uint32(img.Pix[yi+3])
 
 		r_out_sum = radiusPlus1 * pr
 		g_out_sum = radiusPlus1 * pg
