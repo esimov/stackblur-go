@@ -3,7 +3,7 @@
 
 To quote the author this algorithm "*is a compromise between Gaussian blur and Box blur, it creates much better looking blurs than Box blur, but it is 7x faster than Gaussian blur.*" 
 
-Comparing to the Javascript implementation the Go version is ~50% faster, running the same image with the same bluring radius.
+Comparing to the Javascript implementation the Go version is at least 50% faster (depending on the image size and blur radius), running the same image with the same bluring radius.
 
 ### Benchmark
 Radius       | Javascript  | Go
@@ -38,7 +38,7 @@ Usage of stackblur:
   -radius int
     	Radius (default 20)
 ```
-Running command below will generate the blurred version of the source image.
+The command below will generate the blurred version of the source image. This will be automatically opened once it is generated.
 
 ```bash
 $ stackblur -in image/sample.png -out image/output.png -radius 10
