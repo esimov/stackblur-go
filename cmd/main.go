@@ -7,20 +7,25 @@ import (
 	"fmt"
 	"flag"
 	"image"
+	"image/gif"
+	"image/draw"
+	"image/color/palette"
 	"image/png"
 	_ "image/png"
 	_ "image/jpeg"
 	"github.com/esimov/stackblur-go"
-	"github.com/fogleman/imview"
 )
 
 var (
 	source		= flag.String("in", "", "Source")
 	destination	= flag.String("out", "", "Destination")
 	radius 		= flag.Int("radius", 20, "Radius")
+	outputGif	= flag.Bool("gif", false, "Output Gif")
 )
 
 func main() {
+	var imgs []image.Image
+	var done chan struct{} = make(chan struct{}, *radius)
 	flag.Parse()
 
 	img, err := os.Open(*source)
@@ -31,18 +36,49 @@ func main() {
 		panic(err)
 	}
 	start := time.Now()
-	dst := stackblur.Process(src, uint32(src.Bounds().Dx()), uint32(src.Bounds().Dy()), uint32(*radius))
-	end := time.Since(start)
-	fmt.Printf("Processed in: %.2fs\n", end.Seconds())
+	for i := 1; i <= *radius; i++ {
+		dst := stackblur.Process(src, uint32(src.Bounds().Dx()), uint32(src.Bounds().Dy()), uint32(i), done)
+		fmt.Printf("frame %d/%d\n", i, *radius)
+		go func() {
+			if *outputGif {
+				imgs = append(imgs, dst)
+			}
+			if i == *radius {
+				fq, err := os.Create(*destination)
+				defer fq.Close()
 
-	fq, err := os.Create(*destination)
-	defer fq.Close()
-
-	if err = png.Encode(fq, dst); err != nil {
-		log.Fatal(err)
+				if err = png.Encode(fq, dst); err != nil {
+					log.Fatal(err)
+				}
+			}
+		}()
+		<-done
+	}
+	if *outputGif {
+		fmt.Printf("encoding GIF\n")
+		if err := encodeGIF(imgs, "output.gif"); err != nil {
+			log.Fatal(err)
+		}
 	}
 
-	image, _ := imview.LoadImage(*destination)
-	view := imview.ImageToRGBA(image)
-	imview.Show(view)
+	end := time.Since(start)
+	fmt.Printf("Generated in: %.2fs\n", end.Seconds())
+}
+
+// Visualize the bluring by outputting the generated image into a gif file
+func encodeGIF(imgs []image.Image, path string) error {
+	// load static image and construct outGif
+	outGif := &gif.GIF{}
+	for _, inPng := range imgs {
+		inGif := image.NewPaletted(inPng.Bounds(), palette.Plan9)
+		draw.Draw(inGif, inPng.Bounds(), inPng, image.Point{}, draw.Src)
+		outGif.Image = append(outGif.Image, inGif)
+		outGif.Delay = append(outGif.Delay, 0)
+	}
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE, 0600)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return gif.EncodeAll(f, outGif)
 }

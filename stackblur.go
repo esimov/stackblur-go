@@ -55,7 +55,7 @@ func (bs *blurstack) NewBlurStack() *blurstack {
 	return &blurstack{bs.r, bs.g, bs.b, bs.a, bs.next}
 }
 
-func Process(src image.Image, width, height, radius uint32) image.Image {
+func Process(src image.Image, width, height, radius uint32, done chan<- struct{}) image.Image {
 	var stackEnd, stackIn, stackOut *blurstack
 	var (
 		div, widthMinus1, heightMinus1, radiusPlus1, sumFactor uint32
@@ -356,6 +356,7 @@ func Process(src image.Image, width, height, radius uint32) image.Image {
 			yi += width
 		}
 	}
+	done <- struct{}{}
 	return img
 }
 
