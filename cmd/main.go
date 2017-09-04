@@ -37,36 +37,29 @@ func main() {
 		panic(err)
 	}
 	start := time.Now()
-	for i := 1; i <= *radius; i++ {
-		dst := stackblur.Process(src, uint32(src.Bounds().Dx()), uint32(src.Bounds().Dy()), uint32(i), done)
-		fmt.Printf("frame %d/%d\n", i, *radius)
-		go func() {
-			if *outputGif {
-				imgs = append(imgs, dst)
-			}
-			if i == *radius {
-				fq, err := os.Create(*destination)
-				defer fq.Close()
-
-				if err = png.Encode(fq, dst); err != nil {
-					log.Fatal(err)
-				}
-				image, _ := imview.LoadImage(*destination)
-				view := imview.ImageToRGBA(image)
-				imview.Show(view)
-			}
-		}()
-		<-done
-	}
 	if *outputGif {
+		for i := 1; i <= *radius; i++ {
+			img := stackblur.Process(src, uint32(src.Bounds().Dx()), uint32(src.Bounds().Dy()), uint32(i), done)
+			fmt.Printf("frame %d/%d\n", i, *radius)
+			go func() {
+				imgs = append(imgs, img)
+				if i == *radius {
+					generateImage(*destination, img)
+				}
+			}()
+			<-done
+		}
 		fmt.Printf("encoding GIF\n")
 		if err := encodeGIF(imgs, "output.gif"); err != nil {
 			log.Fatal(err)
 		}
+	} else {
+		img := stackblur.Process(src, uint32(src.Bounds().Dx()), uint32(src.Bounds().Dy()), uint32(*radius), done)
+		end := time.Since(start)
+		fmt.Printf("Generated in: %.2fs\n", end.Seconds())
+		generateImage(*destination, img)
+		<-done
 	}
-
-	end := time.Since(start)
-	fmt.Printf("Generated in: %.2fs\n", end.Seconds())
 }
 
 // Visualize the bluring by outputting the generated image into a gif file
@@ -85,4 +78,16 @@ func encodeGIF(imgs []image.Image, path string) error {
 	}
 	defer f.Close()
 	return gif.EncodeAll(f, outGif)
+}
+
+func generateImage(dst string, img image.Image) {
+	fq, err := os.Create(*destination)
+	defer fq.Close()
+
+	if err = png.Encode(fq, img); err != nil {
+		log.Fatal(err)
+	}
+	image, _ := imview.LoadImage(*destination)
+	view := imview.ImageToRGBA(image)
+	imview.Show(view)
 }
