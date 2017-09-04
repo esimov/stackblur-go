@@ -45,13 +45,7 @@ The command below will generate the blurred version of the source image.
 ```bash
 $ stackblur -in image/sample.png -out image/output.png -radius 10
 ```
-To visualize the bluring process the cli command supports the `-gif` flag, which if is set to true it will generate a gif image. For the parallel execution of the the bluring process and the gif visualization `goroutines` are used. 
-
-<p align="center">
-<img src="https://user-images.githubusercontent.com/883386/30024201-5565b990-917b-11e7-81b4-d94ffc3e11f3.gif" height=400/>
-</p>
-
-However if you wish only to generate the blured image, because of API constraints you need to create a go channel and use this as the last parameter of the `Process` method. Something like the code below:
+To visualize the bluring process the cli command supports the `-gif` flag, which if is set to true it will generate a gif image. For the parallel execution of the the bluring process and the gif visualization `goroutines` are used. However if you wish only to generate the blured image, because of API constraints you need to create a go channel and use this as the last parameter of the `Process` method. Something like the code below:
 
 ```Go
 var done chan struct{} = make(chan struct{}, *radius)
