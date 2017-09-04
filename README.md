@@ -31,6 +31,8 @@ The provided CLI example supports the following flags:
 $ stackblur --help
 
 Usage of stackblur:
+  -gif
+    	Output Gif
   -in string
     	Source
   -out string
@@ -43,6 +45,8 @@ The command below will generate the blurred version of the source image. This wi
 ```bash
 $ stackblur -in image/sample.png -out image/output.png -radius 10
 ```
+To visualize the bluring process the cli command supports the `-gif` flag, which if is set to true it will generate a gif image.
+
 
 | Original image | Stackblured image |
 |:--:|:--:|
