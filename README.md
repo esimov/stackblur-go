@@ -40,7 +40,7 @@ Usage of stackblur:
   -radius int
     	Radius (default 20)
 ```
-The command below will generate the blurred version of the source image. This will be automatically opened once it is generated.
+The command below will generate the blurred version of the source image.
 
 ```bash
 $ stackblur -in image/sample.png -out image/output.png -radius 10

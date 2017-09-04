@@ -14,7 +14,6 @@ import (
 	_ "image/png"
 	_ "image/jpeg"
 	"github.com/esimov/stackblur-go"
-	"github.com/fogleman/imview"
 )
 
 var (
@@ -87,7 +86,4 @@ func generateImage(dst string, img image.Image) {
 	if err = png.Encode(fq, img); err != nil {
 		log.Fatal(err)
 	}
-	image, _ := imview.LoadImage(*destination)
-	view := imview.ImageToRGBA(image)
-	imview.Show(view)
 }
