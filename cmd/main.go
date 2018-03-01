@@ -29,6 +29,10 @@ func main() {
 	var done chan struct{} = make(chan struct{}, *radius)
 	flag.Parse()
 
+	if len(*source) == 0 || len(*destination) == 0 {
+		log.Fatal("Usage: stackblur -in input.jpg -out out.jpg")
+	}
+
 	img, err := os.Open(*source)
 	defer img.Close()
 
