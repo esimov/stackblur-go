@@ -8,31 +8,32 @@ import (
 	"image/color"
 )
 
-type blurstack struct {
+// blurStack is a linked list containing the color value and a pointer to the next struct.
+type blurStack struct {
 	r, g, b, a uint32
-	next *blurstack
+	next       *blurStack
 }
 
-var mul_table []uint32 = []uint32{
-	512,512,456,512,328,456,335,512,405,328,271,456,388,335,292,512,
-	454,405,364,328,298,271,496,456,420,388,360,335,312,292,273,512,
-	482,454,428,405,383,364,345,328,312,298,284,271,259,496,475,456,
-	437,420,404,388,374,360,347,335,323,312,302,292,282,273,265,512,
-	497,482,468,454,441,428,417,405,394,383,373,364,354,345,337,328,
-	320,312,305,298,291,284,278,271,265,259,507,496,485,475,465,456,
-	446,437,428,420,412,404,396,388,381,374,367,360,354,347,341,335,
-	329,323,318,312,307,302,297,292,287,282,278,273,269,265,261,512,
-	505,497,489,482,475,468,461,454,447,441,435,428,422,417,411,405,
-	399,394,389,383,378,373,368,364,359,354,350,345,341,337,332,328,
-	324,320,316,312,309,305,301,298,294,291,287,284,281,278,274,271,
-	268,265,262,259,257,507,501,496,491,485,480,475,470,465,460,456,
-	451,446,442,437,433,428,424,420,416,412,408,404,400,396,392,388,
-	385,381,377,374,370,367,363,360,357,354,350,347,344,341,338,335,
-	332,329,326,323,320,318,315,312,310,307,304,302,299,297,294,292,
-	289,287,285,282,280,278,275,273,271,269,267,265,263,261,259,
+var mulTable = []uint32{
+	512, 512, 456, 512, 328, 456, 335, 512, 405, 328, 271, 456, 388, 335, 292, 512,
+	454, 405, 364, 328, 298, 271, 496, 456, 420, 388, 360, 335, 312, 292, 273, 512,
+	482, 454, 428, 405, 383, 364, 345, 328, 312, 298, 284, 271, 259, 496, 475, 456,
+	437, 420, 404, 388, 374, 360, 347, 335, 323, 312, 302, 292, 282, 273, 265, 512,
+	497, 482, 468, 454, 441, 428, 417, 405, 394, 383, 373, 364, 354, 345, 337, 328,
+	320, 312, 305, 298, 291, 284, 278, 271, 265, 259, 507, 496, 485, 475, 465, 456,
+	446, 437, 428, 420, 412, 404, 396, 388, 381, 374, 367, 360, 354, 347, 341, 335,
+	329, 323, 318, 312, 307, 302, 297, 292, 287, 282, 278, 273, 269, 265, 261, 512,
+	505, 497, 489, 482, 475, 468, 461, 454, 447, 441, 435, 428, 422, 417, 411, 405,
+	399, 394, 389, 383, 378, 373, 368, 364, 359, 354, 350, 345, 341, 337, 332, 328,
+	324, 320, 316, 312, 309, 305, 301, 298, 294, 291, 287, 284, 281, 278, 274, 271,
+	268, 265, 262, 259, 257, 507, 501, 496, 491, 485, 480, 475, 470, 465, 460, 456,
+	451, 446, 442, 437, 433, 428, 424, 420, 416, 412, 408, 404, 400, 396, 392, 388,
+	385, 381, 377, 374, 370, 367, 363, 360, 357, 354, 350, 347, 344, 341, 338, 335,
+	332, 329, 326, 323, 320, 318, 315, 312, 310, 307, 304, 302, 299, 297, 294, 292,
+	289, 287, 285, 282, 280, 278, 275, 273, 271, 269, 267, 265, 263, 261, 259,
 }
 
-var shg_table []uint32 = []uint32{
+var shgTable = []uint32{
 	9, 11, 12, 13, 13, 14, 14, 15, 15, 15, 15, 16, 16, 16, 16, 17,
 	17, 17, 17, 17, 17, 17, 18, 18, 18, 18, 18, 18, 18, 18, 18, 19,
 	19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 20, 20, 20,
@@ -51,30 +52,33 @@ var shg_table []uint32 = []uint32{
 	24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24,
 }
 
-func (bs *blurstack) NewBlurStack() *blurstack {
-	return &blurstack{bs.r, bs.g, bs.b, bs.a, bs.next}
+// NewBlurStack is a constructor function returning a new struct of type blurStack.
+func (bs *blurStack) NewBlurStack() *blurStack {
+	return &blurStack{bs.r, bs.g, bs.b, bs.a, bs.next}
 }
 
-func Process(src image.Image, width, height, radius uint32, done chan<- struct{}) image.Image {
-	var stackEnd, stackIn, stackOut *blurstack
+// Process takes an image as parameter and returns it's blurred version by applying the blur radius.
+func Process(src image.Image, radius uint32, done chan struct{}) image.Image {
+	var stackEnd, stackIn, stackOut *blurStack
+	var width, height = uint32(src.Bounds().Dx()), uint32(src.Bounds().Dy())
 	var (
 		div, widthMinus1, heightMinus1, radiusPlus1, sumFactor uint32
 		x, y, i, p, yp, yi, yw,
-		r_sum, g_sum, b_sum, a_sum,
-		r_out_sum, g_out_sum, b_out_sum, a_out_sum,
-		r_in_sum, g_in_sum, b_in_sum, a_in_sum,
+		rSum, gSum, bSum, aSum,
+		rOutSum, gOutSum, bOutSum, aOutSum,
+		rInSum, gInSum, bInSum, aInSum,
 		pr, pg, pb, pa uint32
 	)
 
 	img := toNRGBA(src)
 
-	div 		= radius + radius + 1
-	widthMinus1 	= width - 1
-	heightMinus1 	= height - 1
-	radiusPlus1 	= radius + 1
-	sumFactor 	= radiusPlus1 * (radiusPlus1 + 1) / 2
+	div = radius + radius + 1
+	widthMinus1 = width - 1
+	heightMinus1 = height - 1
+	radiusPlus1 = radius + 1
+	sumFactor = radiusPlus1 * (radiusPlus1 + 1) / 2
 
-	bs := blurstack{}
+	bs := blurStack{}
 	stackStart := bs.NewBlurStack()
 	stack := stackStart
 
@@ -87,26 +91,26 @@ func Process(src image.Image, width, height, radius uint32, done chan<- struct{}
 	}
 	stack.next = stackStart
 
-	mul_sum := mul_table[radius]
-	shg_sum := shg_table[radius]
+	mulSum := mulTable[radius]
+	shgSum := shgTable[radius]
 
 	for y = 0; y < height; y++ {
-		r_in_sum, g_in_sum, b_in_sum, a_in_sum, r_sum, g_sum, b_sum, a_sum = 0, 0, 0, 0, 0, 0, 0, 0
+		rInSum, gInSum, bInSum, aInSum, rSum, gSum, bSum, aSum = 0, 0, 0, 0, 0, 0, 0, 0
 
 		pr = uint32(img.Pix[yi])
 		pg = uint32(img.Pix[yi+1])
 		pb = uint32(img.Pix[yi+2])
 		pa = uint32(img.Pix[yi+3])
 
-		r_out_sum = radiusPlus1 * pr
-		g_out_sum = radiusPlus1 * pg
-		b_out_sum = radiusPlus1 * pb
-		a_out_sum = radiusPlus1 * pa
+		rOutSum = radiusPlus1 * pr
+		gOutSum = radiusPlus1 * pg
+		bOutSum = radiusPlus1 * pb
+		aOutSum = radiusPlus1 * pa
 
-		r_sum += sumFactor * pr
-		g_sum += sumFactor * pg
-		b_sum += sumFactor * pb
-		a_sum += sumFactor * pa
+		rSum += sumFactor * pr
+		gSum += sumFactor * pg
+		bSum += sumFactor * pb
+		aSum += sumFactor * pa
 
 		stack = stackStart
 
@@ -136,15 +140,15 @@ func Process(src image.Image, width, height, radius uint32, done chan<- struct{}
 			stack.b = pb
 			stack.a = pa
 
-			r_sum += stack.r * (radiusPlus1 - i)
-			g_sum += stack.g * (radiusPlus1 - i)
-			b_sum += stack.b * (radiusPlus1 - i)
-			a_sum += stack.a * (radiusPlus1 - i)
+			rSum += stack.r * (radiusPlus1 - i)
+			gSum += stack.g * (radiusPlus1 - i)
+			bSum += stack.b * (radiusPlus1 - i)
+			aSum += stack.a * (radiusPlus1 - i)
 
-			r_in_sum += pr
-			g_in_sum += pg
-			b_in_sum += pb
-			a_in_sum += pa
+			rInSum += pr
+			gInSum += pg
+			bInSum += pb
+			aInSum += pa
 
 			stack = stack.next
 		}
@@ -152,29 +156,28 @@ func Process(src image.Image, width, height, radius uint32, done chan<- struct{}
 		stackOut = stackEnd
 
 		for x = 0; x < width; x++ {
-			pa = (a_sum * mul_sum) >> shg_sum
+			pa = (aSum * mulSum) >> shgSum
 			img.Pix[yi+3] = uint8(pa)
 
 			if pa != 0 {
-				pa = 255 / pa
-				img.Pix[yi]   = uint8((r_sum * mul_sum) >> shg_sum)
-				img.Pix[yi+1] = uint8((g_sum * mul_sum) >> shg_sum)
-				img.Pix[yi+2] = uint8((b_sum * mul_sum) >> shg_sum)
+				img.Pix[yi] = uint8((rSum * mulSum) >> shgSum)
+				img.Pix[yi+1] = uint8((gSum * mulSum) >> shgSum)
+				img.Pix[yi+2] = uint8((bSum * mulSum) >> shgSum)
 			} else {
-				img.Pix[yi]   = 0
+				img.Pix[yi] = 0
 				img.Pix[yi+1] = 0
 				img.Pix[yi+2] = 0
 			}
 
-			r_sum -= r_out_sum
-			g_sum -= g_out_sum
-			b_sum -= b_out_sum
-			a_sum -= a_out_sum
+			rSum -= rOutSum
+			gSum -= gOutSum
+			bSum -= bOutSum
+			aSum -= aOutSum
 
-			r_out_sum -= stackIn.r
-			g_out_sum -= stackIn.g
-			b_out_sum -= stackIn.b
-			a_out_sum -= stackIn.a
+			rOutSum -= stackIn.r
+			gOutSum -= stackIn.g
+			bOutSum -= stackIn.b
+			aOutSum -= stackIn.a
 
 			p = x + radius + 1
 
@@ -188,15 +191,15 @@ func Process(src image.Image, width, height, radius uint32, done chan<- struct{}
 			stackIn.b = uint32(img.Pix[p+2])
 			stackIn.a = uint32(img.Pix[p+3])
 
-			r_in_sum += stackIn.r
-			g_in_sum += stackIn.g
-			b_in_sum += stackIn.b
-			a_in_sum += stackIn.a
+			rInSum += stackIn.r
+			gInSum += stackIn.g
+			bInSum += stackIn.b
+			aInSum += stackIn.a
 
-			r_sum += r_in_sum
-			g_sum += g_in_sum
-			b_sum += b_in_sum
-			a_sum += a_in_sum
+			rSum += rInSum
+			gSum += gInSum
+			bSum += bInSum
+			aSum += aInSum
 
 			stackIn = stackIn.next
 
@@ -205,15 +208,15 @@ func Process(src image.Image, width, height, radius uint32, done chan<- struct{}
 			pb = stackOut.b
 			pa = stackOut.a
 
-			r_out_sum += pr
-			g_out_sum += pg
-			b_out_sum += pb
-			a_out_sum += pa
+			rOutSum += pr
+			gOutSum += pg
+			bOutSum += pb
+			aOutSum += pa
 
-			r_in_sum -= pr
-			g_in_sum -= pg
-			b_in_sum -= pb
-			a_in_sum -= pa
+			rInSum -= pr
+			gInSum -= pg
+			bInSum -= pb
+			aInSum -= pa
 
 			stackOut = stackOut.next
 
@@ -223,7 +226,7 @@ func Process(src image.Image, width, height, radius uint32, done chan<- struct{}
 	}
 
 	for x = 0; x < width; x++ {
-		r_in_sum, g_in_sum, b_in_sum, a_in_sum, r_sum, g_sum, b_sum, a_sum = 0, 0, 0, 0, 0, 0, 0, 0
+		rInSum, gInSum, bInSum, aInSum, rSum, gSum, bSum, aSum = 0, 0, 0, 0, 0, 0, 0, 0
 
 		yi = x << 2
 		pr = uint32(img.Pix[yi])
@@ -231,15 +234,15 @@ func Process(src image.Image, width, height, radius uint32, done chan<- struct{}
 		pb = uint32(img.Pix[yi+2])
 		pa = uint32(img.Pix[yi+3])
 
-		r_out_sum = radiusPlus1 * pr
-		g_out_sum = radiusPlus1 * pg
-		b_out_sum = radiusPlus1 * pb
-		a_out_sum = radiusPlus1 * pa
+		rOutSum = radiusPlus1 * pr
+		gOutSum = radiusPlus1 * pg
+		bOutSum = radiusPlus1 * pb
+		aOutSum = radiusPlus1 * pa
 
-		r_sum += sumFactor * pr
-		g_sum += sumFactor * pg
-		b_sum += sumFactor * pb
-		a_sum += sumFactor * pa
+		rSum += sumFactor * pr
+		gSum += sumFactor * pg
+		bSum += sumFactor * pb
+		aSum += sumFactor * pa
 
 		stack = stackStart
 
@@ -265,15 +268,15 @@ func Process(src image.Image, width, height, radius uint32, done chan<- struct{}
 			stack.b = pb
 			stack.a = pa
 
-			r_sum += stack.r * (radiusPlus1 - i)
-			g_sum += stack.g * (radiusPlus1 - i)
-			b_sum += stack.b * (radiusPlus1 - i)
-			a_sum += stack.a * (radiusPlus1 - i)
+			rSum += stack.r * (radiusPlus1 - i)
+			gSum += stack.g * (radiusPlus1 - i)
+			bSum += stack.b * (radiusPlus1 - i)
+			aSum += stack.a * (radiusPlus1 - i)
 
-			r_in_sum += pr
-			g_in_sum += pg
-			b_in_sum += pb
-			a_in_sum += pa
+			rInSum += pr
+			gInSum += pg
+			bInSum += pb
+			aInSum += pa
 
 			stack = stack.next
 
@@ -288,29 +291,28 @@ func Process(src image.Image, width, height, radius uint32, done chan<- struct{}
 
 		for y = 0; y < height; y++ {
 			p = yi << 2
-			pa = (a_sum * mul_sum) >> shg_sum
+			pa = (aSum * mulSum) >> shgSum
 			img.Pix[p+3] = uint8(pa)
 
 			if pa > 0 {
-				pa = 255 / pa
-				img.Pix[p]   = uint8((r_sum * mul_sum) >> shg_sum)
-				img.Pix[p+1] = uint8((g_sum * mul_sum) >> shg_sum)
-				img.Pix[p+2] = uint8((b_sum * mul_sum) >> shg_sum)
+				img.Pix[p] = uint8((rSum * mulSum) >> shgSum)
+				img.Pix[p+1] = uint8((gSum * mulSum) >> shgSum)
+				img.Pix[p+2] = uint8((bSum * mulSum) >> shgSum)
 			} else {
-				img.Pix[p]   = 0
+				img.Pix[p] = 0
 				img.Pix[p+1] = 0
 				img.Pix[p+2] = 0
 			}
 
-			r_sum -= r_out_sum
-			g_sum -= g_out_sum
-			b_sum -= b_out_sum
-			a_sum -= a_out_sum
+			rSum -= rOutSum
+			gSum -= gOutSum
+			bSum -= bOutSum
+			aSum -= aOutSum
 
-			r_out_sum -= stackIn.r
-			g_out_sum -= stackIn.g
-			b_out_sum -= stackIn.b
-			a_out_sum -= stackIn.a
+			rOutSum -= stackIn.r
+			gOutSum -= stackIn.g
+			bOutSum -= stackIn.b
+			aOutSum -= stackIn.a
 
 			p = y + radiusPlus1
 
@@ -324,15 +326,15 @@ func Process(src image.Image, width, height, radius uint32, done chan<- struct{}
 			stackIn.b = uint32(img.Pix[p+2])
 			stackIn.a = uint32(img.Pix[p+3])
 
-			r_in_sum += stackIn.r
-			g_in_sum += stackIn.g
-			b_in_sum += stackIn.b
-			a_in_sum += stackIn.a
+			rInSum += stackIn.r
+			gInSum += stackIn.g
+			bInSum += stackIn.b
+			aInSum += stackIn.a
 
-			r_sum += r_in_sum
-			g_sum += g_in_sum
-			b_sum += b_in_sum
-			a_sum += a_in_sum
+			rSum += rInSum
+			gSum += gInSum
+			bSum += bInSum
+			aSum += aInSum
 
 			stackIn = stackIn.next
 
@@ -341,15 +343,15 @@ func Process(src image.Image, width, height, radius uint32, done chan<- struct{}
 			pb = stackOut.b
 			pa = stackOut.a
 
-			r_out_sum += pr
-			g_out_sum += pg
-			b_out_sum += pb
-			a_out_sum += pa
+			rOutSum += pr
+			gOutSum += pg
+			bOutSum += pb
+			aOutSum += pa
 
-			r_in_sum -= pr
-			g_in_sum -= pg
-			b_in_sum -= pb
-			a_in_sum -= pa
+			rInSum -= pr
+			gInSum -= pg
+			bInSum -= pb
+			aInSum -= pa
 
 			stackOut = stackOut.next
 
@@ -359,7 +361,6 @@ func Process(src image.Image, width, height, radius uint32, done chan<- struct{}
 	done <- struct{}{}
 	return img
 }
-
 
 // toNRGBA converts any image type to *image.NRGBA with min-point at (0, 0).
 func toNRGBA(img image.Image) *image.NRGBA {

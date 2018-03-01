@@ -13,6 +13,7 @@ import (
 	"image/png"
 	_ "image/png"
 	_ "image/jpeg"
+
 	"github.com/esimov/stackblur-go"
 )
 
@@ -38,7 +39,7 @@ func main() {
 	start := time.Now()
 	if *outputGif {
 		for i := 1; i <= *radius; i++ {
-			img := stackblur.Process(src, uint32(src.Bounds().Dx()), uint32(src.Bounds().Dy()), uint32(i), done)
+			img := stackblur.Process(src, uint32(i), done)
 			fmt.Printf("frame %d/%d\n", i, *radius)
 			go func() {
 				imgs = append(imgs, img)
@@ -53,7 +54,7 @@ func main() {
 			log.Fatal(err)
 		}
 	} else {
-		img := stackblur.Process(src, uint32(src.Bounds().Dx()), uint32(src.Bounds().Dy()), uint32(*radius), done)
+		img := stackblur.Process(src, uint32(*radius), done)
 		end := time.Since(start)
 		fmt.Printf("Generated in: %.2fs\n", end.Seconds())
 		generateImage(*destination, img)
