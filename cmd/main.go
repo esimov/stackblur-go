@@ -1,32 +1,32 @@
 package main
 
 import (
-	"os"
-	"log"
-	"time"
-	"fmt"
 	"flag"
+	"fmt"
 	"image"
-	"image/gif"
-	"image/draw"
 	"image/color/palette"
+	"image/draw"
+	"image/gif"
+	_ "image/jpeg"
 	"image/png"
 	_ "image/png"
-	_ "image/jpeg"
+	"log"
+	"os"
+	"time"
 
 	"github.com/esimov/stackblur-go"
 )
 
 var (
-	source		= flag.String("in", "", "Source")
-	destination	= flag.String("out", "", "Destination")
-	radius 		= flag.Int("radius", 20, "Radius")
-	outputGif	= flag.Bool("gif", false, "Output Gif")
+	source      = flag.String("in", "", "Source")
+	destination = flag.String("out", "", "Destination")
+	radius      = flag.Int("radius", 20, "Radius")
+	outputGif   = flag.Bool("gif", false, "Output Gif")
 )
 
 func main() {
 	var imgs []image.Image
-	var done chan struct{} = make(chan struct{}, *radius)
+
 	flag.Parse()
 
 	if len(*source) == 0 || len(*destination) == 0 {
@@ -43,7 +43,7 @@ func main() {
 	start := time.Now()
 	if *outputGif {
 		for i := 1; i <= *radius; i++ {
-			img := stackblur.Process(src, uint32(i), done)
+			img := stackblur.Process(src, uint32(i))
 			fmt.Printf("frame %d/%d\n", i, *radius)
 			go func() {
 				imgs = append(imgs, img)
@@ -51,19 +51,17 @@ func main() {
 					generateImage(*destination, img)
 				}
 			}()
-			<-done
 		}
 		fmt.Printf("encoding GIF\n")
 		if err := encodeGIF(imgs, "output.gif"); err != nil {
 			log.Fatal(err)
 		}
 	} else {
-		img := stackblur.Process(src, uint32(*radius), done)
-		end := time.Since(start)
-		fmt.Printf("Generated in: %.2fs\n", end.Seconds())
+		img := stackblur.Process(src, uint32(*radius))
 		generateImage(*destination, img)
-		<-done
 	}
+	end := time.Since(start)
+	fmt.Printf("\nGenerated in: %.2fs\n", end.Seconds())
 }
 
 // Visualize the bluring by outputting the generated image into a gif file
@@ -85,7 +83,7 @@ func encodeGIF(imgs []image.Image, path string) error {
 }
 
 func generateImage(dst string, img image.Image) {
-	fq, err := os.Create(*destination)
+	fq, err := os.Create(dst)
 	defer fq.Close()
 
 	if err = png.Encode(fq, img); err != nil {
