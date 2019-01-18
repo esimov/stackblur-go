@@ -7,11 +7,13 @@ import (
 	"image/color/palette"
 	"image/draw"
 	"image/gif"
+	"image/jpeg"
 	_ "image/jpeg"
 	"image/png"
 	_ "image/png"
 	"log"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/esimov/stackblur-go"
@@ -48,7 +50,9 @@ func main() {
 			go func() {
 				imgs = append(imgs, img)
 				if i == *radius {
-					generateImage(*destination, img)
+					if err := generateImage(*destination, img); err != nil {
+						log.Fatal(err)
+					}
 				}
 			}()
 		}
@@ -58,7 +62,9 @@ func main() {
 		}
 	} else {
 		img := stackblur.Process(src, uint32(*radius))
-		generateImage(*destination, img)
+		if err := generateImage(*destination, img); err != nil {
+			log.Fatal(err)
+		}
 	}
 	end := time.Since(start)
 	fmt.Printf("\nGenerated in: %.2fs\n", end.Seconds())
@@ -82,11 +88,25 @@ func encodeGIF(imgs []image.Image, path string) error {
 	return gif.EncodeAll(f, outGif)
 }
 
-func generateImage(dst string, img image.Image) {
-	fq, err := os.Create(dst)
-	defer fq.Close()
+// generateImage generates the image type depending on the provided extension.
+func generateImage(dst string, img image.Image) error {
+	output, err := os.OpenFile(dst, os.O_CREATE|os.O_RDWR, 0755)
+	defer output.Close()
 
-	if err = png.Encode(fq, img); err != nil {
-		log.Fatal(err)
+	if err != nil {
+		return err
 	}
+	ext := filepath.Ext(output.Name())
+
+	switch ext {
+	case ".jpg", ".jpeg":
+		if err = jpeg.Encode(output, img, &jpeg.Options{Quality: 100}); err != nil {
+			return err
+		}
+	case ".png":
+		if err = png.Encode(output, img); err != nil {
+			return err
+		}
+	}
+	return nil
 }
