@@ -1,7 +1,9 @@
 # stackblur-go
-`stackblur-go` is a Go port of [Stackblur](http://incubator.quasimondo.com/processing/fast_blur_deluxe.php) algorithm created by Mario Klingemann.
+[![Build Status](https://travis-ci.org/esimov/stackblur-go.svg?branch=master)](https://travis-ci.org/esimov/stackblur-go)
 
-To quote the author this algorithm "*is a compromise between Gaussian blur and Box blur, it creates much better looking blurs than Box blur, but it is 7x faster than Gaussian blur.*" 
+This is a Go port of [Stackblur](http://incubator.quasimondo.com/processing/fast_blur_deluxe.php) algorithm created by Mario Klingemann.
+
+Stackblur is a compromise between Gaussian blur and Box blur, but it creates much better looking blurs than Box blur and it is ~7x faster than Gaussian blur.
 
 Comparing to the Javascript implementation the Go version is at least 50% faster (depending on the image size and blur radius), running the same image with the same bluring radius.
 
@@ -45,12 +47,12 @@ The command below will generate the blurred version of the source image.
 ```bash
 $ stackblur -in image/sample.png -out image/output.png -radius 10
 ```
-To visualize the bluring process the cli command supports the `-gif` flag, which if set as true it will generate a gif image. For the parallel execution of the the bluring process and the gif visualization `goroutines` are used. However in case you wish to generate only the blured image, because of API constraints, you need to create a go channel and use this as the last parameter of the `Process` method. Something like the code below:
+The cli command supports a `-gif` flag, which if set as true it visualize the bluring process by outputting the result into a gif file.
+
+The API call is very simple: you have to expose an image file and a blur radius to the `Process` function.
 
 ```Go
-var done chan struct{} = make(chan struct{}, *radius)
-stackblur.Process(src, uint32(src.Bounds().Dx()), uint32(src.Bounds().Dy()), uint32(*radius), done)
-<-done
+stackblur.Process(src, blurRadius)
 ```
 
 | Original image | Stackblured image |
