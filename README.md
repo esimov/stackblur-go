@@ -49,13 +49,17 @@ $ stackblur -in image/sample.png -out image/output.png -radius 10
 ```
 The cli command supports a `-gif` flag, which if set as true it visualize the bluring process by outputting the result into a gif file.
 
+## API call
+
 The API call is very simple: you have to expose an image file and a blur radius to the `Process` function.
 
 ```Go
 stackblur.Process(src, blurRadius)
 ```
 
-| Original image | Stackblured image |
+## Results
+
+| Original image | Blured image |
 |:--:|:--:|
 | <img src="https://github.com/esimov/stackblur-go/blob/master/image/sample.png" height="300"> | <img src="https://github.com/esimov/stackblur-go/blob/master/image/output.png" height="300"> |
 
