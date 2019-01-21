@@ -13,6 +13,7 @@ import (
 	_ "image/png"
 	"log"
 	"os"
+	"path"
 	"path/filepath"
 	"time"
 
@@ -57,7 +58,9 @@ func main() {
 			}()
 		}
 		fmt.Printf("encoding GIF\n")
-		if err := encodeGIF(imgs, "output.gif"); err != nil {
+
+		dest := path.Dir(*destination) + "/" + "output.gif"
+		if err := encodeGIF(imgs, dest); err != nil {
 			log.Fatal(err)
 		}
 	} else {
