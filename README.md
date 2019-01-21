@@ -51,7 +51,7 @@ The cli command supports a `-gif` flag, which if set as true it visualize the bl
 
 ## API call
 
-The API call is very simple: you have to expose an image file and a blur radius to the `Process` function.
+The API is very simple: you have to expose an image file and a blur radius to the `Process` function.
 
 ```Go
 stackblur.Process(src, blurRadius)
