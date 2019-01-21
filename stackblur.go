@@ -52,12 +52,12 @@ var shgTable = []uint32{
 	24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24,
 }
 
-// NewBlurStack is a constructor function returning a new struct of type blurStack.
+// NewBlurStack initialize the StackBlur algorithm by returning a new struct of type blurStack.
 func (bs *blurStack) NewBlurStack() *blurStack {
 	return &blurStack{bs.r, bs.g, bs.b, bs.a, bs.next}
 }
 
-// Process takes an image as parameter and returns it's blurred version by applying the blur radius.
+// Process takes an image as input and returns it's blurred version by applying the blur radius defined as parameter.
 func Process(src image.Image, radius uint32) image.Image {
 	var stackEnd, stackIn, stackOut *blurStack
 	var width, height = uint32(src.Bounds().Dx()), uint32(src.Bounds().Dy())

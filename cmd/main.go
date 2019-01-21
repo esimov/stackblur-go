@@ -70,7 +70,7 @@ func main() {
 	fmt.Printf("\nGenerated in: %.2fs\n", end.Seconds())
 }
 
-// Visualize the bluring by outputting the generated image into a gif file
+// encodeGIF encodes the generated output into a gif file
 func encodeGIF(imgs []image.Image, path string) error {
 	// load static image and construct outGif
 	outGif := &gif.GIF{}
@@ -88,7 +88,7 @@ func encodeGIF(imgs []image.Image, path string) error {
 	return gif.EncodeAll(f, outGif)
 }
 
-// generateImage generates the image type depending on the provided extension.
+// generateImage generates the image type depending on the provided extension
 func generateImage(dst string, img image.Image) error {
 	output, err := os.OpenFile(dst, os.O_CREATE|os.O_RDWR, 0755)
 	defer output.Close()
