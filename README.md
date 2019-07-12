@@ -1,4 +1,6 @@
 # stackblur-go
+
+[![GoDoc](https://godoc.org/github.com/golang/gddo?status.svg)](https://godoc.org/github.com/esimov/stackblur-go)
 [![Build Status](https://travis-ci.org/esimov/stackblur-go.svg?branch=master)](https://travis-ci.org/esimov/stackblur-go)
 
 This is a Go port of [Stackblur](http://incubator.quasimondo.com/processing/fast_blur_deluxe.php) algorithm created by Mario Klingemann.
