@@ -4,6 +4,7 @@
 package stackblur
 
 import (
+	"errors"
 	"image"
 	"image/color"
 )
@@ -57,8 +58,8 @@ func (bs *blurStack) NewBlurStack() *blurStack {
 	return &blurStack{bs.r, bs.g, bs.b, bs.a, bs.next}
 }
 
-// Process takes an image as input and returns it's blurred version by applying the blur radius defined as parameter.
-func Process(src image.Image, radius uint32) image.Image {
+// Run takes an image as input and returns it's blurred version by applying the blur radius defined as parameter.
+func Run(src image.Image, radius uint32) (image.Image, error) {
 	var stackEnd, stackIn, stackOut *blurStack
 	var width, height = uint32(src.Bounds().Dx()), uint32(src.Bounds().Dy())
 	var (
@@ -69,6 +70,9 @@ func Process(src image.Image, radius uint32) image.Image {
 		rInSum, gInSum, bInSum, aInSum,
 		pr, pg, pb, pa uint32
 	)
+	if radius < 1 {
+		return nil, errors.New("blur radius must be greater than 0")
+	}
 
 	img := toNRGBA(src)
 
@@ -358,7 +362,7 @@ func Process(src image.Image, radius uint32) image.Image {
 			yi += width
 		}
 	}
-	return img
+	return img, nil
 }
 
 // toNRGBA converts any image type to *image.NRGBA with min-point at (0, 0).

@@ -46,7 +46,10 @@ func main() {
 	start := time.Now()
 	if *outputGif {
 		for i := 1; i <= *radius; i++ {
-			img := stackblur.Process(src, uint32(i))
+			img, err := stackblur.Run(src, uint32(i))
+			if err != nil {
+				log.Fatal(err)
+			}
 			fmt.Printf("frame %d/%d\n", i, *radius)
 			go func() {
 				imgs = append(imgs, img)
@@ -64,7 +67,10 @@ func main() {
 			log.Fatal(err)
 		}
 	} else {
-		img := stackblur.Process(src, uint32(*radius))
+		img, err := stackblur.Run(src, uint32(*radius))
+		if err != nil {
+			log.Fatal(err)
+		}
 		if err := generateImage(*destination, img); err != nil {
 			log.Fatal(err)
 		}
