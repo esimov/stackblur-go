@@ -55,11 +55,6 @@ var shgTable = []uint32{
 	24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24,
 }
 
-// NewBlurStack initialize the StackBlur algorithm by returning a new struct of type blurStack.
-func (bs *blurStack) NewBlurStack() *blurStack {
-	return &blurStack{bs.r, bs.g, bs.b, bs.a, bs.next}
-}
-
 // Run takes an image or pixel data as input and returns
 // it's blurred version by applying the blur radius defined as parameter.
 func Run(input interface{}, radius uint32) (image.Image, error) {
@@ -101,12 +96,11 @@ func Run(input interface{}, radius uint32) (image.Image, error) {
 	radiusPlus1 = radius + 1
 	sumFactor = radiusPlus1 * (radiusPlus1 + 1) / 2
 
-	bs := blurStack{}
-	stackStart := bs.NewBlurStack()
+	stackStart := new(blurStack)
 	stack := stackStart
 
 	for i = 1; i < div; i++ {
-		stack.next = bs.NewBlurStack()
+		stack.next = new(blurStack)
 		stack = stack.next
 		if i == radiusPlus1 {
 			stackEnd = stack
