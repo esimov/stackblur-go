@@ -22,10 +22,12 @@ First, install Go, set your GOPATH, and make sure $GOPATH/bin is on your PATH.
 $ export GOPATH="$HOME/go"
 $ export PATH="$PATH:$GOPATH/bin"
 ```
-Next build the binary file.
+
+Next download the project and build the binary file.
 
 ```bash
-$ go get -u -f github.com/esimov/stackblur-go/cmd
+$ go get -u -f github.com/esimov/stackblur-go
+$ cd cmd && go build -o $GOPATH/bin/stackblur
 ```
 
 #### CLI example
