@@ -53,7 +53,7 @@ $ stackblur -in image/sample.png -out image/output.png -radius 10
 ```
 The cli command supports a `-gif` flag, which if set as true it visualize the bluring process by outputting the result into a gif file.
 
-## API call
+## API
 
 The API is very simple: you have to expose an image file or a pixel array and a blur radius to the `Run` function. This will return the blurred version of the original image. 
 
