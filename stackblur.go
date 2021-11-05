@@ -84,6 +84,12 @@ func Run(input interface{}, radius uint32) (image.Image, error) {
 		rInSum, gInSum, bInSum, aInSum,
 		pr, pg, pb, pa uint32
 	)
+	// Limit the maximum blur radius to 255, otherwise it overflows the multable length
+	// and will panic with and index out of range error.
+	if int(radius) >= len(mulTable) {
+		radius = uint32(len(mulTable) - 1)
+	}
+
 	if radius < 1 {
 		return nil, errors.New("blur radius must be greater than 0")
 	}
