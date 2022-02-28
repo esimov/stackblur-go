@@ -7,8 +7,6 @@ import (
 	"errors"
 	"image"
 	"image/color"
-	"io"
-	"os"
 )
 
 // blurStack is a linked list containing the color value and a pointer to the next struct.
@@ -55,27 +53,15 @@ var shgTable = []uint32{
 	24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24,
 }
 
-// Run takes an image or pixel data as input and returns
-// it's blurred version by applying the blur radius defined as parameter.
-func Run(input interface{}, radius uint32) (image.Image, error) {
+// Process takes the source image and returns it's blurred version by applying the blur radius defined as parameter.
+func Process(src image.Image, radius uint32) (*image.NRGBA, error) {
 	var (
 		stackEnd *blurStack
 		stackIn  *blurStack
 		stackOut *blurStack
-		src      interface{}
-		err      error
 	)
-	switch input.(type) {
-	case *os.File:
-		src, _, err = image.Decode(input.(io.Reader))
-		if err != nil {
-			return nil, err
-		}
-	default:
-		src = input
-	}
 
-	var width, height = uint32(src.(image.Image).Bounds().Dx()), uint32(src.(image.Image).Bounds().Dy())
+	var width, height = uint32(src.Bounds().Dx()), uint32(src.Bounds().Dy())
 	var (
 		div, widthMinus1, heightMinus1, radiusPlus1, sumFactor uint32
 		x, y, i, p, yp, yi, yw,
@@ -94,7 +80,7 @@ func Run(input interface{}, radius uint32) (image.Image, error) {
 		return nil, errors.New("blur radius must be greater than 0")
 	}
 
-	img := toNRGBA(src.(image.Image))
+	img := toNRGBA(src)
 
 	div = radius + radius + 1
 	widthMinus1 = width - 1

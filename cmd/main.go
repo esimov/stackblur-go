@@ -8,9 +8,7 @@ import (
 	"image/draw"
 	"image/gif"
 	"image/jpeg"
-	_ "image/jpeg"
 	"image/png"
-	_ "image/png"
 	"log"
 	"os"
 	"path"
@@ -37,6 +35,9 @@ func main() {
 	}
 
 	img, err := os.Open(*source)
+	if err != nil {
+		log.Fatal("could not open source image:", err)
+	}
 	defer img.Close()
 
 	src, _, err := image.Decode(img)
@@ -46,7 +47,7 @@ func main() {
 	start := time.Now()
 	if *outputGif {
 		for i := 1; i <= *radius; i++ {
-			img, err := stackblur.Run(src, uint32(i))
+			img, err := stackblur.Process(src, uint32(i))
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -67,7 +68,7 @@ func main() {
 			log.Fatal(err)
 		}
 	} else {
-		img, err := stackblur.Run(src, uint32(*radius))
+		img, err := stackblur.Process(src, uint32(*radius))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -76,7 +77,7 @@ func main() {
 		}
 	}
 	end := time.Since(start)
-	fmt.Printf("\nGenerated in: %.2fs\n", end.Seconds())
+	fmt.Printf("Generated in: %.2fs\n", end.Seconds())
 }
 
 // encodeGIF encodes the generated output into a gif file
@@ -100,6 +101,9 @@ func encodeGIF(imgs []image.Image, path string) error {
 // generateImage generates the image type depending on the provided extension
 func generateImage(dst string, img image.Image) error {
 	output, err := os.OpenFile(dst, os.O_CREATE|os.O_RDWR, 0755)
+	if err != nil {
+		return err
+	}
 	defer output.Close()
 
 	if err != nil {
