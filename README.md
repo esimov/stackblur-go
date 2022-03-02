@@ -55,10 +55,10 @@ The cli command supports a `-gif` flag, which if set as true it visualize the bl
 
 ## API
 
-The API is very simple: you have to expose an image file or a pixel array and a blur radius to the `Run` function. This will return the blurred version of the original image. 
+The usage of the API is very simple: you need to expose an image file and a blur radius to the `Process` function. This will return the blurred version of the original image.
 
 ```Go
-stackblur.Run(src, blurRadius)
+stackblur.Process(src, blurRadius)
 ```
 
 ## Results
