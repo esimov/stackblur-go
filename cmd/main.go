@@ -26,42 +26,42 @@ var (
 )
 
 func main() {
-	var imgs []image.Image
-
 	flag.Parse()
 
 	if len(*source) == 0 || len(*destination) == 0 {
 		log.Fatal("Usage: stackblur -in input.jpg -out out.jpg")
 	}
 
+	var imgs = make([]image.Image, *radius)
+
 	img, err := os.Open(*source)
 	if err != nil {
-		log.Fatal("could not open source image:", err)
+		log.Fatalf("could not open the source file: %v", err)
 	}
 	defer img.Close()
 
 	src, _, err := image.Decode(img)
 	if err != nil {
-		panic(err)
+		log.Fatalf("could not decode the source image: %v", err)
 	}
 	start := time.Now()
 	if *outputGif {
-		for i := 1; i <= *radius; i++ {
-			img, err := stackblur.Process(src, uint32(i))
+		for i := 0; i < *radius; i++ {
+			img, err := stackblur.Process(src, uint32(i+1))
 			if err != nil {
 				log.Fatal(err)
 			}
 			fmt.Printf("frame %d/%d\n", i, *radius)
-			go func() {
-				imgs = append(imgs, img)
-				if i == *radius {
+			go func(idx int) {
+				imgs[idx] = img
+				if idx == *radius {
 					if err := generateImage(*destination, img); err != nil {
 						log.Fatal(err)
 					}
 				}
-			}()
+			}(i)
 		}
-		fmt.Printf("encoding GIF\n")
+		fmt.Printf("encoding GIF file...\n")
 
 		dest := path.Dir(*destination) + "/" + "output.gif"
 		if err := encodeGIF(imgs, dest); err != nil {
@@ -73,7 +73,7 @@ func main() {
 			log.Fatal(err)
 		}
 		if err := generateImage(*destination, img); err != nil {
-			log.Fatal(err)
+			log.Fatalf("error generating the blurred image: %v", err)
 		}
 	}
 	end := time.Since(start)
@@ -82,20 +82,20 @@ func main() {
 
 // encodeGIF encodes the generated output into a gif file
 func encodeGIF(imgs []image.Image, path string) error {
-	// load static image and construct outGif
-	outGif := &gif.GIF{}
-	for _, inPng := range imgs {
-		inGif := image.NewPaletted(inPng.Bounds(), palette.Plan9)
-		draw.Draw(inGif, inPng.Bounds(), inPng, image.Point{}, draw.Src)
-		outGif.Image = append(outGif.Image, inGif)
-		outGif.Delay = append(outGif.Delay, 0)
+	// load static image and construct output gif file
+	g := new(gif.GIF)
+	for _, src := range imgs {
+		dst := image.NewPaletted(src.Bounds(), palette.Plan9)
+		draw.Draw(dst, src.Bounds(), src, image.Point{}, draw.Src)
+		g.Image = append(g.Image, dst)
+		g.Delay = append(g.Delay, 0)
 	}
-	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE, 0600)
+	f, err := os.Create(path)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	return gif.EncodeAll(f, outGif)
+	return gif.EncodeAll(f, g)
 }
 
 // generateImage generates the image type depending on the provided extension
