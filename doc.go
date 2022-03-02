@@ -3,9 +3,9 @@ stackblur-go is a Go port of the Stackblur algorithm.
 
 Stackblur is a compromise between Gaussian blur and Box blur, but it creates much better looking blurs than Box blur and it is ~7x faster than Gaussian blur.
 
-The API is very simple and easy to integrate into the project. There is a single publicly exposed `Process` functions which receive an image and a radius as parameters and returns the blurred version of the provided image.
+The API is very simple and easy to integrate into any project. You only need to invoke the `Process` function which receive an image and a radius as parameters and returns the blurred version of the provided image.
 
-	func Process(src image.Image, radius uint32) image.Image
+	func Process(src image.Image, radius uint32) (*image.NRGBA, error)
 
 Below is a very simple example of how you can use this package.
 
@@ -21,25 +21,32 @@ Below is a very simple example of how you can use this package.
 	)
 
 	func main() {
-		img, err := os.Open("sample.jpg")
-		defer img.Close()
+		var radius uint32 = 5
+		f, err := os.Open("sample.png")
+		if err != nil {
+			log.Fatalf("could not open source file: %v", err)
+		}
+		defer f.Close()
 
-		src, _, err := image.Decode(img)
+		img, _, err := image.Decode(f)
+		if err != nil {
+			log.Fatalf("could not decode source file: %v", err)
+		}
+
+		src, err := stackblur.Process(img, radius)
 		if err != nil {
 			log.Fatal(err)
 		}
-
-		res := stackblur.Process(src, uint32(5))
 
 		output, err := os.OpenFile("output.jpg", os.O_CREATE|os.O_RDWR, 0755)
-		defer output.Close()
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalf("could not open destination file: %v", err)
 		}
+		defer output.Close()
 
-		if err = jpeg.Encode(output, res, &jpeg.Options{Quality: 100}); err != nil {
-			log.Fatal(err)
+		if err = jpeg.Encode(output, src, &jpeg.Options{Quality: 100}); err != nil {
+			log.Fatalf("could not encode destination image: %v", err)
 		}
 	}
- */
+*/
 package stackblur
