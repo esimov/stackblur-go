@@ -423,7 +423,7 @@ func toNRGBA(img image.Image) *image.NRGBA {
 				dst.Pix[di+2] = c
 				dst.Pix[di+3] = 0xff
 				di += 4
-				si += 2
+				si++
 			}
 		}
 	default:
