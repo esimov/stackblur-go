@@ -55,6 +55,16 @@ var shgTable = []uint32{
 
 // Process takes the source image and returns it's blurred version by applying the blur radius defined as parameter.
 func Process(src image.Image, radius uint32) (*image.NRGBA, error) {
+	img := toNRGBA(src)
+	if err := ProcessP(src, img, radius); err != nil {
+		return nil, err
+	}
+
+	return img, nil
+}
+
+// ProcessP takes the source image and destination image pointer to write it's blurred version by applyingh the blur radius defined as parameter to it.
+func ProcessP(src image.Image, dst *image.NRGBA, radius uint32) error {
 	var (
 		stackEnd *blurStack
 		stackIn  *blurStack
@@ -77,10 +87,13 @@ func Process(src image.Image, radius uint32) (*image.NRGBA, error) {
 	}
 
 	if radius < 1 {
-		return nil, errors.New("blur radius must be greater than 0")
+		return errors.New("blur radius must be greater than 0")
 	}
 
-	img := toNRGBA(src)
+	img, err := ensureBounds(src, dst)
+	if err != nil {
+		return err
+	}
 
 	div = radius + radius + 1
 	widthMinus1 = width - 1
@@ -367,7 +380,7 @@ func Process(src image.Image, radius uint32) (*image.NRGBA, error) {
 			yi += width
 		}
 	}
-	return img, nil
+	return nil
 }
 
 // toNRGBA converts an image type to *image.NRGBA with min-point at (0, 0).
@@ -441,4 +454,18 @@ func toNRGBA(img image.Image) *image.NRGBA {
 	}
 
 	return dst
+}
+
+func ensureBounds(src image.Image, dst *image.NRGBA) (*image.NRGBA, error) {
+	srcB := src.Bounds()
+	dstB := dst.Bounds()
+	if srcB.Dx() != dstB.Dx() || srcB.Dy() != dstB.Dy() {
+		return nil, errors.New("destination image bounds are not matching the source")
+	}
+
+	if dst.Bounds().Min.X != 0 || dst.Bounds().Min.Y != 0 {
+		dst.Rect = dst.Rect.Sub(dst.Bounds().Min)
+	}
+
+	return dst, nil
 }
