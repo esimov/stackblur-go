@@ -373,11 +373,6 @@ func Process(src image.Image, radius uint32) (*image.NRGBA, error) {
 // toNRGBA converts an image type to *image.NRGBA with min-point at (0, 0).
 func toNRGBA(img image.Image) *image.NRGBA {
 	srcBounds := img.Bounds()
-	if srcBounds.Min.X == 0 && srcBounds.Min.Y == 0 {
-		if src0, ok := img.(*image.NRGBA); ok {
-			return src0
-		}
-	}
 	srcMinX := srcBounds.Min.X
 	srcMinY := srcBounds.Min.Y
 
