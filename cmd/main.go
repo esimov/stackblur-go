@@ -13,6 +13,8 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"sort"
+	"sync"
 	"time"
 
 	"github.com/esimov/stackblur-go"
@@ -38,29 +40,40 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not open the source file: %v", err)
 	}
-	defer img.Close()
+
+	defer func() {
+		if err := img.Close(); err != nil {
+			log.Fatalf("error closing the opened file: %v", err)
+		}
+	}()
 
 	src, _, err := image.Decode(img)
 	if err != nil {
 		log.Fatalf("could not decode the source image: %v", err)
 	}
+
+	wg := &sync.WaitGroup{}
 	start := time.Now()
+
 	if *outputGif {
+		wg.Add(*radius)
+
 		for i := 0; i < *radius; i++ {
-			img, err := stackblur.Process(src, uint32(i+1))
-			if err != nil {
-				log.Fatal(err)
-			}
-			fmt.Printf("frame %d/%d\n", i, *radius)
 			go func(idx int) {
-				imgs[idx] = img
-				if idx == *radius {
-					if err := generateImage(*destination, img); err != nil {
-						log.Fatal(err)
-					}
+				img, err := stackblur.Process(src, uint32(idx+1))
+				if err != nil {
+					log.Fatal(err)
 				}
+				fmt.Printf("frame %d/%d\n", idx, *radius)
+				imgs[idx] = img
+
+				wg.Done()
 			}(i)
 		}
+		wg.Wait()
+
+		sort.Slice(imgs, func(i, j int) bool { return i < j })
+
 		fmt.Printf("encoding GIF file...\n")
 
 		dest := path.Dir(*destination) + "/" + "output.gif"
@@ -77,6 +90,7 @@ func main() {
 		}
 	}
 	end := time.Since(start)
+
 	fmt.Printf("Generated in: %.2fs\n", end.Seconds())
 }
 
@@ -94,32 +108,40 @@ func encodeGIF(imgs []image.Image, path string) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+
+	defer func() {
+		if err := f.Close(); err != nil {
+			log.Fatalf("error closing the opened file: %v", err)
+		}
+	}()
+
 	return gif.EncodeAll(f, g)
 }
 
 // generateImage generates the image type depending on the provided extension
 func generateImage(dst string, img image.Image) error {
-	output, err := os.OpenFile(dst, os.O_CREATE|os.O_RDWR, 0755)
+	out, err := os.OpenFile(dst, os.O_CREATE|os.O_RDWR, 0755)
 	if err != nil {
 		return err
 	}
-	defer output.Close()
+	defer func() {
+		if err := out.Close(); err != nil {
+			log.Fatalf("error closing the opened file: %v", err)
+		}
+	}()
 
-	if err != nil {
-		return err
-	}
-	ext := filepath.Ext(output.Name())
+	ext := filepath.Ext(out.Name())
 
 	switch ext {
 	case ".jpg", ".jpeg":
-		if err = jpeg.Encode(output, img, &jpeg.Options{Quality: 100}); err != nil {
+		if err = jpeg.Encode(out, img, &jpeg.Options{Quality: 100}); err != nil {
 			return err
 		}
 	case ".png":
-		if err = png.Encode(output, img); err != nil {
+		if err = png.Encode(out, img); err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
