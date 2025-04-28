@@ -60,7 +60,8 @@ func main() {
 
 		for i := 0; i < *radius; i++ {
 			go func(idx int) {
-				img, err := stackblur.Process(src, uint32(idx+1))
+				img := image.NewNRGBA(src.Bounds())
+				err := stackblur.Run(img, src, uint32(idx+1))
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -81,7 +82,8 @@ func main() {
 			log.Fatal(err)
 		}
 	} else {
-		img, err := stackblur.Process(src, uint32(*radius))
+		img := image.NewNRGBA(src.Bounds())
+		err := stackblur.Run(img, src, uint32(*radius))
 		if err != nil {
 			log.Fatal(err)
 		}

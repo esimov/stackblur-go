@@ -53,8 +53,77 @@ var shgTable = []uint32{
 	24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24,
 }
 
-// Process takes the source image and returns it's blurred version by applying the blur radius defined as parameter.
-func Process(src image.Image, radius uint32) (*image.NRGBA, error) {
+// Run takes the source image and returns it's blurred version by applying the blur radius defined as parameter.
+func Run(dst, src image.Image, radius uint32) error {
+	// Limit the maximum blur radius to 255 to avoid overflowing the multable.
+	if int(radius) >= len(mulTable) {
+		radius = uint32(len(mulTable) - 1)
+	}
+
+	if radius < 1 {
+		return errors.New("blur radius must be greater than 0")
+	}
+
+	if img, ok := dst.(*image.NRGBA); ok {
+		process(img, src, radius)
+	}
+
+	return nil
+}
+
+func process(dst *image.NRGBA, src image.Image, radius uint32) {
+	srcBounds := src.Bounds()
+	srcMinX := srcBounds.Min.X
+	srcMinY := srcBounds.Min.Y
+
+	dstBounds := srcBounds.Sub(srcBounds.Min)
+	dstW := dstBounds.Dx()
+	dstH := dstBounds.Dy()
+
+	switch src0 := src.(type) {
+	case *image.NRGBA:
+		rowSize := srcBounds.Dx() * 4
+		for dstY := 0; dstY < dstH; dstY++ {
+			di := src0.PixOffset(0, dstY)
+			si := src0.PixOffset(srcMinX, srcMinY+dstY)
+			for dstX := 0; dstX < dstW; dstX++ {
+				copy(dst.Pix[di:di+rowSize], src0.Pix[si:si+rowSize])
+			}
+		}
+	case *image.YCbCr:
+		for dstY := 0; dstY < dstH; dstY++ {
+			di := dst.PixOffset(0, dstY)
+			for dstX := 0; dstX < dstW; dstX++ {
+				srcX := srcMinX + dstX
+				srcY := srcMinY + dstY
+				siy := src0.YOffset(srcX, srcY)
+				sic := src0.COffset(srcX, srcY)
+				r, g, b := color.YCbCrToRGB(src0.Y[siy], src0.Cb[sic], src0.Cr[sic])
+				dst.Pix[di+0] = r
+				dst.Pix[di+1] = g
+				dst.Pix[di+2] = b
+				dst.Pix[di+3] = 0xff
+				di += 4
+			}
+		}
+	default:
+		for dstY := 0; dstY < dstH; dstY++ {
+			di := dst.PixOffset(0, dstY)
+			for dstX := 0; dstX < dstW; dstX++ {
+				c := color.NRGBAModel.Convert(src.At(srcMinX+dstX, srcMinY+dstY)).(color.NRGBA)
+				dst.Pix[di+0] = c.R
+				dst.Pix[di+1] = c.G
+				dst.Pix[di+2] = c.B
+				dst.Pix[di+3] = c.A
+				di += 4
+			}
+		}
+	}
+
+	blurImage(dst, radius)
+}
+
+func blurImage(src *image.NRGBA, radius uint32) {
 	var (
 		stackEnd *blurStack
 		stackIn  *blurStack
@@ -70,17 +139,6 @@ func Process(src image.Image, radius uint32) (*image.NRGBA, error) {
 		rInSum, gInSum, bInSum, aInSum,
 		pr, pg, pb, pa uint32
 	)
-	// Limit the maximum blur radius to 255, otherwise it overflows the multable length
-	// and will panic with and index out of range error.
-	if int(radius) >= len(mulTable) {
-		radius = uint32(len(mulTable) - 1)
-	}
-
-	if radius < 1 {
-		return nil, errors.New("blur radius must be greater than 0")
-	}
-
-	img := toNRGBA(src)
 
 	div = radius + radius + 1
 	widthMinus1 = width - 1
@@ -106,10 +164,10 @@ func Process(src image.Image, radius uint32) (*image.NRGBA, error) {
 	for y = 0; y < height; y++ {
 		rInSum, gInSum, bInSum, aInSum, rSum, gSum, bSum, aSum = 0, 0, 0, 0, 0, 0, 0, 0
 
-		pr = uint32(img.Pix[yi])
-		pg = uint32(img.Pix[yi+1])
-		pb = uint32(img.Pix[yi+2])
-		pa = uint32(img.Pix[yi+3])
+		pr = uint32(src.Pix[yi])
+		pg = uint32(src.Pix[yi+1])
+		pb = uint32(src.Pix[yi+2])
+		pa = uint32(src.Pix[yi+3])
 
 		rOutSum = radiusPlus1 * pr
 		gOutSum = radiusPlus1 * pg
@@ -139,10 +197,10 @@ func Process(src image.Image, radius uint32) (*image.NRGBA, error) {
 				diff = i
 			}
 			p = yi + (diff << 2)
-			pr = uint32(img.Pix[p])
-			pg = uint32(img.Pix[p+1])
-			pb = uint32(img.Pix[p+2])
-			pa = uint32(img.Pix[p+3])
+			pr = uint32(src.Pix[p])
+			pg = uint32(src.Pix[p+1])
+			pb = uint32(src.Pix[p+2])
+			pa = uint32(src.Pix[p+3])
 
 			stack.r = pr
 			stack.g = pg
@@ -166,16 +224,16 @@ func Process(src image.Image, radius uint32) (*image.NRGBA, error) {
 
 		for x = 0; x < width; x++ {
 			pa = (aSum * mulSum) >> shgSum
-			img.Pix[yi+3] = uint8(pa)
+			src.Pix[yi+3] = uint8(pa)
 
 			if pa != 0 {
-				img.Pix[yi] = uint8((rSum * mulSum) >> shgSum)
-				img.Pix[yi+1] = uint8((gSum * mulSum) >> shgSum)
-				img.Pix[yi+2] = uint8((bSum * mulSum) >> shgSum)
+				src.Pix[yi] = uint8((rSum * mulSum) >> shgSum)
+				src.Pix[yi+1] = uint8((gSum * mulSum) >> shgSum)
+				src.Pix[yi+2] = uint8((bSum * mulSum) >> shgSum)
 			} else {
-				img.Pix[yi] = 0
-				img.Pix[yi+1] = 0
-				img.Pix[yi+2] = 0
+				src.Pix[yi] = 0
+				src.Pix[yi+1] = 0
+				src.Pix[yi+2] = 0
 			}
 
 			rSum -= rOutSum
@@ -195,10 +253,10 @@ func Process(src image.Image, radius uint32) (*image.NRGBA, error) {
 			}
 			p = (yw + p) << 2
 
-			stackIn.r = uint32(img.Pix[p])
-			stackIn.g = uint32(img.Pix[p+1])
-			stackIn.b = uint32(img.Pix[p+2])
-			stackIn.a = uint32(img.Pix[p+3])
+			stackIn.r = uint32(src.Pix[p])
+			stackIn.g = uint32(src.Pix[p+1])
+			stackIn.b = uint32(src.Pix[p+2])
+			stackIn.a = uint32(src.Pix[p+3])
 
 			rInSum += stackIn.r
 			gInSum += stackIn.g
@@ -238,10 +296,10 @@ func Process(src image.Image, radius uint32) (*image.NRGBA, error) {
 		rInSum, gInSum, bInSum, aInSum, rSum, gSum, bSum, aSum = 0, 0, 0, 0, 0, 0, 0, 0
 
 		yi = x << 2
-		pr = uint32(img.Pix[yi])
-		pg = uint32(img.Pix[yi+1])
-		pb = uint32(img.Pix[yi+2])
-		pa = uint32(img.Pix[yi+3])
+		pr = uint32(src.Pix[yi])
+		pg = uint32(src.Pix[yi+1])
+		pb = uint32(src.Pix[yi+2])
+		pa = uint32(src.Pix[yi+3])
 
 		rOutSum = radiusPlus1 * pr
 		gOutSum = radiusPlus1 * pg
@@ -267,10 +325,10 @@ func Process(src image.Image, radius uint32) (*image.NRGBA, error) {
 
 		for i = 1; i <= radius; i++ {
 			yi = (yp + x) << 2
-			pr = uint32(img.Pix[yi])
-			pg = uint32(img.Pix[yi+1])
-			pb = uint32(img.Pix[yi+2])
-			pa = uint32(img.Pix[yi+3])
+			pr = uint32(src.Pix[yi])
+			pg = uint32(src.Pix[yi+1])
+			pb = uint32(src.Pix[yi+2])
+			pa = uint32(src.Pix[yi+3])
 
 			stack.r = pr
 			stack.g = pg
@@ -301,16 +359,16 @@ func Process(src image.Image, radius uint32) (*image.NRGBA, error) {
 		for y = 0; y < height; y++ {
 			p = yi << 2
 			pa = (aSum * mulSum) >> shgSum
-			img.Pix[p+3] = uint8(pa)
+			src.Pix[p+3] = uint8(pa)
 
 			if pa > 0 {
-				img.Pix[p] = uint8((rSum * mulSum) >> shgSum)
-				img.Pix[p+1] = uint8((gSum * mulSum) >> shgSum)
-				img.Pix[p+2] = uint8((bSum * mulSum) >> shgSum)
+				src.Pix[p] = uint8((rSum * mulSum) >> shgSum)
+				src.Pix[p+1] = uint8((gSum * mulSum) >> shgSum)
+				src.Pix[p+2] = uint8((bSum * mulSum) >> shgSum)
 			} else {
-				img.Pix[p] = 0
-				img.Pix[p+1] = 0
-				img.Pix[p+2] = 0
+				src.Pix[p] = 0
+				src.Pix[p+1] = 0
+				src.Pix[p+2] = 0
 			}
 
 			rSum -= rOutSum
@@ -330,10 +388,10 @@ func Process(src image.Image, radius uint32) (*image.NRGBA, error) {
 			}
 			p = (x + (p * width)) << 2
 
-			stackIn.r = uint32(img.Pix[p])
-			stackIn.g = uint32(img.Pix[p+1])
-			stackIn.b = uint32(img.Pix[p+2])
-			stackIn.a = uint32(img.Pix[p+3])
+			stackIn.r = uint32(src.Pix[p])
+			stackIn.g = uint32(src.Pix[p+1])
+			stackIn.b = uint32(src.Pix[p+2])
+			stackIn.a = uint32(src.Pix[p+3])
 
 			rInSum += stackIn.r
 			gInSum += stackIn.g
@@ -367,73 +425,4 @@ func Process(src image.Image, radius uint32) (*image.NRGBA, error) {
 			yi += width
 		}
 	}
-	return img, nil
-}
-
-// toNRGBA converts an image type to *image.NRGBA with min-point at (0, 0).
-func toNRGBA(img image.Image) *image.NRGBA {
-	srcBounds := img.Bounds()
-	srcMinX := srcBounds.Min.X
-	srcMinY := srcBounds.Min.Y
-
-	dstBounds := srcBounds.Sub(srcBounds.Min)
-	dstW := dstBounds.Dx()
-	dstH := dstBounds.Dy()
-	dst := image.NewNRGBA(dstBounds)
-
-	switch src := img.(type) {
-	case *image.NRGBA:
-		rowSize := srcBounds.Dx() * 4
-		for dstY := 0; dstY < dstH; dstY++ {
-			di := dst.PixOffset(0, dstY)
-			si := src.PixOffset(srcMinX, srcMinY+dstY)
-			for dstX := 0; dstX < dstW; dstX++ {
-				copy(dst.Pix[di:di+rowSize], src.Pix[si:si+rowSize])
-			}
-		}
-	case *image.YCbCr:
-		for dstY := 0; dstY < dstH; dstY++ {
-			di := dst.PixOffset(0, dstY)
-			for dstX := 0; dstX < dstW; dstX++ {
-				srcX := srcMinX + dstX
-				srcY := srcMinY + dstY
-				siy := src.YOffset(srcX, srcY)
-				sic := src.COffset(srcX, srcY)
-				r, g, b := color.YCbCrToRGB(src.Y[siy], src.Cb[sic], src.Cr[sic])
-				dst.Pix[di+0] = r
-				dst.Pix[di+1] = g
-				dst.Pix[di+2] = b
-				dst.Pix[di+3] = 0xff
-				di += 4
-			}
-		}
-	case *image.Gray:
-		for dstY := 0; dstY < dstH; dstY++ {
-			di := dst.PixOffset(0, dstY)
-			si := src.PixOffset(srcMinX, srcMinY+dstY)
-			for dstX := 0; dstX < dstW; dstX++ {
-				c := src.Pix[si]
-				dst.Pix[di+0] = c
-				dst.Pix[di+1] = c
-				dst.Pix[di+2] = c
-				dst.Pix[di+3] = 0xff
-				di += 4
-				si++
-			}
-		}
-	default:
-		for dstY := 0; dstY < dstH; dstY++ {
-			di := dst.PixOffset(0, dstY)
-			for dstX := 0; dstX < dstW; dstX++ {
-				c := color.NRGBAModel.Convert(img.At(srcMinX+dstX, srcMinY+dstY)).(color.NRGBA)
-				dst.Pix[di+0] = c.R
-				dst.Pix[di+1] = c.G
-				dst.Pix[di+2] = c.B
-				dst.Pix[di+3] = c.A
-				di += 4
-			}
-		}
-	}
-
-	return dst
 }
