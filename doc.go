@@ -3,9 +3,9 @@ stackblur-go is a Go port of the Stackblur algorithm.
 
 Stackblur is a compromise between Gaussian blur and Box blur, but it creates much better looking blurs than Box blur and it is ~7x faster than Gaussian blur.
 
-The API is very simple and easy to integrate into any project. You only need to invoke the Process function which receive an image and a radius as parameters and returns the blurred version of the provided image.
+The usage of the API is very simple: it exposes a single public `Process` function which requires a destination and a source image together with a blur radius. The blured image will be encoded into the destination image.
 
-	func Process(src image.Image, radius uint32) (*image.NRGBA, error)
+	func Process(dst, src image.Image, radius uint32) error
 
 Below is a very simple example of how you can use this package.
 
@@ -28,12 +28,13 @@ Below is a very simple example of how you can use this package.
 		}
 		defer f.Close()
 
-		img, _, err := image.Decode(f)
+		src, _, err := image.Decode(f)
 		if err != nil {
 			log.Fatalf("could not decode source file: %v", err)
 		}
 
-		src, err := stackblur.Process(img, radius)
+		dst := image.NewNRGBA(src.Bounds())
+		err = stackblur.Process(dst, src, radius)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -44,7 +45,7 @@ Below is a very simple example of how you can use this package.
 		}
 		defer output.Close()
 
-		if err = jpeg.Encode(output, src, &jpeg.Options{Quality: 100}); err != nil {
+		if err = jpeg.Encode(output, dst, &jpeg.Options{Quality: 100}); err != nil {
 			log.Fatalf("could not encode destination image: %v", err)
 		}
 	}

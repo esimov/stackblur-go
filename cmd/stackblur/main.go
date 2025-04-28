@@ -60,13 +60,13 @@ func main() {
 
 		for i := 0; i < *radius; i++ {
 			go func(idx int) {
-				img := image.NewNRGBA(src.Bounds())
-				err := stackblur.Run(img, src, uint32(idx+1))
+				dst := image.NewNRGBA(src.Bounds())
+				err := stackblur.Process(dst, src, uint32(idx+1))
 				if err != nil {
 					log.Fatal(err)
 				}
 				fmt.Printf("frame %d/%d\n", idx, *radius)
-				imgs[idx] = img
+				imgs[idx] = dst
 
 				wg.Done()
 			}(i)
@@ -82,12 +82,12 @@ func main() {
 			log.Fatal(err)
 		}
 	} else {
-		img := image.NewNRGBA(src.Bounds())
-		err := stackblur.Run(img, src, uint32(*radius))
+		dst := image.NewNRGBA(src.Bounds())
+		err := stackblur.Process(dst, src, uint32(*radius))
 		if err != nil {
 			log.Fatal(err)
 		}
-		if err := generateImage(*destination, img); err != nil {
+		if err := generateImage(*destination, dst); err != nil {
 			log.Fatalf("error generating the blurred image: %v", err)
 		}
 	}

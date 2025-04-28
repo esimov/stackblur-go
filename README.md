@@ -16,18 +16,8 @@ Radius       | Javascript  | Go
 
 ## Installation
 
-First, install Go, set your GOPATH, and make sure $GOPATH/bin is on your PATH.
-
 ```bash
-$ export GOPATH="$HOME/go"
-$ export PATH="$PATH:$GOPATH/bin"
-```
-
-Next download the project and build the binary file.
-
-```bash
-$ go get -u -f github.com/esimov/stackblur-go
-$ cd cmd && go build -o $GOPATH/bin/stackblur
+$ go install github.com/esimov/stackblur-go/cmd/stackblur@latest
 ```
 
 #### CLI example
@@ -55,10 +45,10 @@ The cli command supports a `-gif` flag, which if set as true it visualize the bl
 
 ## API
 
-The usage of the API is very simple: you need to expose an image file and a blur radius to the `Process` function. This will return the blurred version of the original image.
+The usage of the API is very simple: it exposes a single public `Process` function which requires a destination and a source image together with a blur radius. The blured image will be encoded into the destination image.
 
 ```Go
-stackblur.Process(src, blurRadius)
+stackblur.Process(dst, src, blurRadius)
 ```
 
 ## Results

@@ -53,8 +53,8 @@ var shgTable = []uint32{
 	24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24,
 }
 
-// Run takes the source image and returns it's blurred version by applying the blur radius defined as parameter.
-func Run(dst, src image.Image, radius uint32) error {
+// Process takes the source image and returns it's blurred version by applying the blur radius defined as parameter.
+func Process(dst, src image.Image, radius uint32) error {
 	// Limit the maximum blur radius to 255 to avoid overflowing the multable.
 	if int(radius) >= len(mulTable) {
 		radius = uint32(len(mulTable) - 1)
