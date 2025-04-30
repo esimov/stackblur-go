@@ -53,7 +53,7 @@ var shgTable = []uint32{
 	24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24,
 }
 
-// Process takes the source image and returns it's blurred version by applying the blur radius defined as parameter.
+// Process takes the source image and returns it's blurred version by applying the blur radius defined as parameter. The destination image must be a image.NRGBA.
 func Process(dst, src image.Image, radius uint32) error {
 	// Limit the maximum blur radius to 255 to avoid overflowing the multable.
 	if int(radius) >= len(mulTable) {
@@ -64,10 +64,12 @@ func Process(dst, src image.Image, radius uint32) error {
 		return errors.New("blur radius must be greater than 0")
 	}
 
-	if img, ok := dst.(*image.NRGBA); ok {
-		process(img, src, radius)
+	img, ok := dst.(*image.NRGBA)
+	if !ok {
+		return errors.New("the destination image must be image.NRGBA")
 	}
 
+	process(img, src, radius)
 	return nil
 }
 
