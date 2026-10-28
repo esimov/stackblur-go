@@ -58,8 +58,8 @@ func main() {
 	if *outputGif {
 		wg.Add(*radius)
 
-		for i := 0; i < *radius; i++ {
-			go func(idx int) {
+		for idx := range *radius {
+			go func() {
 				dst := image.NewNRGBA(src.Bounds())
 				err := stackblur.Process(dst, src, uint32(idx+1))
 				if err != nil {
@@ -69,7 +69,7 @@ func main() {
 				imgs[idx] = dst
 
 				wg.Done()
-			}(i)
+			}()
 		}
 		wg.Wait()
 
